@@ -21,5 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shaders\Basic.shader" />
+    <None Include="resources\shaders\Vertex.shader" />
+    <None Include="resources\shaders\Fragment.shader" />
   </ItemGroup>
 </Project>

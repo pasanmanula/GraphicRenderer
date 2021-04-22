@@ -37,7 +37,7 @@ static ShaderProgramSource ParseShader(const std::string& filepath)
             ss[(int)type] << line << '\n';
         }
     }
-    return { ss[0].str(),ss[0].str() };
+    return { ss[0].str(),ss[1].str() };
 }
 
 static unsigned int CompileShader(unsigned int type, const std::string& source)
@@ -109,19 +109,32 @@ int main(void)
     ///   
 
     //Vertex butter- Copy positions array to vRAM of the GPU AND select that buffer. (Remember this is a state machine)
-    float positions[6] = {
-        -0.5f,-0.5f,
-         0.0f, 0.5f,
-         0.5f, -0.5f
+    float positions[] = {
+        -0.5f,-0.5f, //Vertx 0
+         0.5f, -0.5f,//Vertx 1
+         0.5f, 0.5f,//Vertx 2
+         -0.5f, 0.5f //Vertx 3
     };
+
+    unsigned int indices[] = {
+        0,1,2,
+        2,3,0
+    };
+
     unsigned int buffer;
     glGenBuffers(1,&buffer); //One buffer and pointer to a unsigned int--> Generating a buffer and giving us an ID to refer later.
     glBindBuffer(GL_ARRAY_BUFFER,buffer); //Selecting(glbind**) the above buffer
-    glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float),positions,GL_STATIC_DRAW); //Put the data into the buffer
+    glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float),positions,GL_STATIC_DRAW); //Put the data into the buffer
 
     //Vertex Attributes - Telling our Layout (Here positions)
     glEnableVertexAttribArray(0); //Enable the vertex attribute
     glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(float)*2,0); //Telling the layout
+
+    //Index Buffer - To remove duplicate vertices. The index buffer MUST be unsigned int not signed int
+    unsigned int ibo;
+    glGenBuffers(1, &ibo); //One buffer and pointer to a unsigned int--> Generating a buffer and giving us an ID to refer later.
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo); //Selecting(glbind**) the above buffer
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW); //Put the data into the buffer
 
     //Shader - block of code that run on the GPU
     //Vertex shader - This shader will call for every vertex (3 times in this case). Primary purpose :- Where the vertex should place in the screen.
@@ -148,9 +161,11 @@ int main(void)
     //    "   color = vec4(1.0,0.0,0.0,1.0);\n"
     //    "}\n";
     //unsigned int shader = CreateShader(vertexShader, fragmentShader);
+
     ShaderProgramSource source = ParseShader("resources/shaders/Basic.shader");
     unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
+
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window)) 
@@ -164,7 +179,8 @@ int main(void)
         glVertex2f(0.5f, -0.5f);
         glEnd();
         */
-        glDrawArrays(GL_TRIANGLES,0,3);
+        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
+        //glDrawArrays(GL_TRIANGLES,0,6); //Draw vertices sequencially.
  
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
