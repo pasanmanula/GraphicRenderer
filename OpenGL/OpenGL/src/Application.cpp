@@ -5,11 +5,35 @@
 #include <string>
 #include <sstream>
 
+//macros
+#define ASSERT(x) if (!(x)) __debugbreak(); //VS compiler MSVC
+#ifdef DEBUG
+    #define GLCall(x) GLClearError();\
+        x;\
+        ASSERT(GLLogCall(#x, __FILE__,__LINE__))
+#else
+    #define GLCall(x) x;
+#endif
 struct ShaderProgramSource
 {
     std::string VertexSource;
     std::string FragmentSource;
 };
+
+static void GLClearError()
+{
+    while (glGetError() != GL_NO_ERROR);
+}
+
+static bool GLLogCall(const char* function, const char* file, int line)
+{
+    while (GLenum error = glGetError())
+    {
+        std::cout << "[OpenGL Error] (" << error << ")" << function << " " << file << " " << line << std::endl;
+        return false;
+    }
+    return true;
+}
 
 static ShaderProgramSource ParseShader(const std::string& filepath)
 {
@@ -100,6 +124,8 @@ int main(void)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
+    glfwSwapInterval(1); //Sync with monitors refresh rate
+
     if (glewInit() != GLEW_OK) {
         std::cout << "Error!" << std::endl;
     }
@@ -122,19 +148,19 @@ int main(void)
     };
 
     unsigned int buffer;
-    glGenBuffers(1,&buffer); //One buffer and pointer to a unsigned int--> Generating a buffer and giving us an ID to refer later.
-    glBindBuffer(GL_ARRAY_BUFFER,buffer); //Selecting(glbind**) the above buffer
-    glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float),positions,GL_STATIC_DRAW); //Put the data into the buffer
+    GLCall(glGenBuffers(1,&buffer)); //One buffer and pointer to a unsigned int--> Generating a buffer and giving us an ID to refer later.
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER,buffer)); //Selecting(glbind**) the above buffer
+    GLCall(glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float),positions,GL_STATIC_DRAW)); //Put the data into the buffer
 
     //Vertex Attributes - Telling our Layout (Here positions)
-    glEnableVertexAttribArray(0); //Enable the vertex attribute
-    glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(float)*2,0); //Telling the layout
+    GLCall(glEnableVertexAttribArray(0)); //Enable the vertex attribute
+    GLCall(glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(float)*2,0)); //Telling the layout
 
     //Index Buffer - To remove duplicate vertices. The index buffer MUST be unsigned int not signed int
     unsigned int ibo;
-    glGenBuffers(1, &ibo); //One buffer and pointer to a unsigned int--> Generating a buffer and giving us an ID to refer later.
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo); //Selecting(glbind**) the above buffer
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW); //Put the data into the buffer
+    GLCall(glGenBuffers(1, &ibo)); //One buffer and pointer to a unsigned int--> Generating a buffer and giving us an ID to refer later.
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo)); //Selecting(glbind**) the above buffer
+    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW)); //Put the data into the buffer
 
     //Shader - block of code that run on the GPU
     //Vertex shader - This shader will call for every vertex (3 times in this case). Primary purpose :- Where the vertex should place in the screen.
@@ -164,9 +190,14 @@ int main(void)
 
     ShaderProgramSource source = ParseShader("resources/shaders/Basic.shader");
     unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
-    glUseProgram(shader);
+    GLCall(glUseProgram(shader)); //Binding the shader
 
 
+    GLCall(int location = glGetUniformLocation(shader,"u_Color")); //Retrieving location of the u_Color variable
+    ASSERT(location != -1);
+    GLCall(glUniform4f(location,0.2f,0.3f,0.8f,1.0f)); //Set the data from CPU to GPU (Setting the Color of the rectangle)
+    float redChannel = 0.0f;
+    float increment = 0.05f;
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window)) 
     {
@@ -179,7 +210,16 @@ int main(void)
         glVertex2f(0.5f, -0.5f);
         glEnd();
         */
-        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
+        //Thanks to uniforms 
+        GLCall(glUniform4f(location, redChannel, 0.3f, 0.8f, 1.0f));
+        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+        if (redChannel > 1.0f)
+            increment -= 0.2f;
+        else if (redChannel < 0.0f)
+            increment += 0.2f;
+        redChannel += increment;
+//        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
         //glDrawArrays(GL_TRIANGLES,0,6); //Draw vertices sequencially.
  
         /* Swap front and back buffers */
