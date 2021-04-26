@@ -113,6 +113,12 @@ int main(void)
     if (!glfwInit())
         return -1;
 
+    //Setting up the openGL profile to Core (To support Vertex array object)
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3); //VERSION 3.3
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //Core Profile
+
+
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
     if (!window)
@@ -134,7 +140,7 @@ int main(void)
 
     ///   
 
-    //Vertex butter- Copy positions array to vRAM of the GPU AND select that buffer. (Remember this is a state machine)
+    
     float positions[] = {
         -0.5f,-0.5f, //Vertx 0
          0.5f, -0.5f,//Vertx 1
@@ -147,14 +153,20 @@ int main(void)
         2,3,0
     };
 
+    //Explicitly creating vertex array object
+    unsigned int vao; // This is used to hold the actual vertex array object ID. Core Profile Mode
+    GLCall(glGenVertexArrays(1,&vao));
+    GLCall(glBindVertexArray(vao));
+
+    //Vertex buffer- Copy positions array to vRAM of the GPU AND select that buffer. (Remember this is a state machine)
     unsigned int buffer;
     GLCall(glGenBuffers(1,&buffer)); //One buffer and pointer to a unsigned int--> Generating a buffer and giving us an ID to refer later.
     GLCall(glBindBuffer(GL_ARRAY_BUFFER,buffer)); //Selecting(glbind**) the above buffer
-    GLCall(glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float),positions,GL_STATIC_DRAW)); //Put the data into the buffer
+    GLCall(glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float),positions,GL_STATIC_DRAW)); //Put the data into the buffer
 
     //Vertex Attributes - Telling our Layout (Here positions)
     GLCall(glEnableVertexAttribArray(0)); //Enable the vertex attribute
-    GLCall(glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(float)*2,0)); //Telling the layout
+    GLCall(glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(float)*2,0)); //Telling the layout. ALSO THIS LINKS VAO (VERTEX BUFFER) TO THE ABOVE BUFFER.
 
     //Index Buffer - To remove duplicate vertices. The index buffer MUST be unsigned int not signed int
     unsigned int ibo;
@@ -196,6 +208,14 @@ int main(void)
     GLCall(int location = glGetUniformLocation(shader,"u_Color")); //Retrieving location of the u_Color variable
     ASSERT(location != -1);
     GLCall(glUniform4f(location,0.2f,0.3f,0.8f,1.0f)); //Set the data from CPU to GPU (Setting the Color of the rectangle)
+        
+    //Unbinding everything
+    GLCall(glBindVertexArray(0));
+    GLCall(glUseProgram(0));
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+    
+
     float redChannel = 0.0f;
     float increment = 0.05f;
     /* Loop until the user closes the window */
@@ -210,9 +230,30 @@ int main(void)
         glVertex2f(0.5f, -0.5f);
         glEnd();
         */
-        //Thanks to uniforms 
+
+        //=================Way the we draw things========================
+        //binding the shader
+        GLCall(glUseProgram(shader));
+        //Setup the uniforms 
         GLCall(glUniform4f(location, redChannel, 0.3f, 0.8f, 1.0f));
+
+        /*
+        //Binding the vertex buffer - 1
+        GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
+        //Setup the layout of that vertex buffer - 2
+        GLCall(glEnableVertexAttribArray(0));
+        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
+        */
+
+        //Vertex array object is 1+2 using OpenGL Core Profile
+        GLCall(glBindVertexArray(vao));
+
+        //Binding the index buffer
+        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+        //Draw call
         GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+        //=================================================================================
+
         if (redChannel > 1.0f)
             increment -= 0.2f;
         else if (redChannel < 0.0f)
@@ -228,7 +269,7 @@ int main(void)
         /* Poll for and process events */
         glfwPollEvents();
     }
-    glDeleteProgram(shader);
+    glDeleteProgram(shader); 
     glfwTerminate();
     return 0;
 }
