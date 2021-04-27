@@ -153,7 +153,7 @@ int main(void)
         2,3,0
     };
 
-    //Explicitly creating vertex array object
+    //Explicitly creating vertex array object - This is used to tie together a vertex buffer(s) with some kind of a layout
     unsigned int vao; // This is used to hold the actual vertex array object ID. Core Profile Mode
     GLCall(glGenVertexArrays(1,&vao));
     GLCall(glBindVertexArray(vao));

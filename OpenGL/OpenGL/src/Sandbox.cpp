@@ -7,7 +7,7 @@
 #include "Renderer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
-
+#include "VertexArray.h"
 
 struct ShaderProgramSource
 {
@@ -134,17 +134,17 @@ int main(void)
         2,3,0
     };
 
-    //Explicitly creating vertex array object
-    unsigned int vao; // This is used to hold the actual vertex array object ID. Core Profile Mode
-    GLCall(glGenVertexArrays(1, &vao));
-    GLCall(glBindVertexArray(vao));
-
+    VertexArray va;
     //Vertex buffer- Copy positions array to vRAM of the GPU AND select that buffer. (Remember this is a state machine)
     VertexBuffer vb(positions, 4 * 2 * sizeof(float));
-    
+
+
     //Vertex Attributes - Telling our Layout (Here positions)
-    GLCall(glEnableVertexAttribArray(0)); //Enable the vertex attribute
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0)); //Telling the layout. ALSO THIS LINKS VAO (VERTEX BUFFER) TO THE ABOVE BUFFER.
+    VertexBufferLayout layout;
+    layout.Push<float>(2);
+    va.AddBuffer(vb, layout);
+
+   
 
     //Index Buffer - To remove duplicate vertices. The index buffer MUST be unsigned int not signed int
     IndexBuffer ib(indices,6);
@@ -164,7 +164,7 @@ int main(void)
     GLCall(glUniform4f(location, 0.2f, 0.3f, 0.8f, 1.0f)); //Set the data from CPU to GPU (Setting the Color of the rectangle)
 
     //Unbinding everything
-    GLCall(glBindVertexArray(0));
+    va.Unbind();
     GLCall(glUseProgram(0));
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
@@ -186,7 +186,8 @@ int main(void)
         GLCall(glUniform4f(location, redChannel, 0.3f, 0.8f, 1.0f));
 
         //Vertex array object is 1+2 using OpenGL Core Profile
-        GLCall(glBindVertexArray(vao));
+        va.Bind();
+
 
         //Binding the index buffer
         ib.Bind();
