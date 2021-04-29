@@ -6,6 +6,7 @@
 #include <sstream>
 #include "Renderer.h"
 #include "VertexBuffer.h"
+#include "VertexBufferLayout.h"
 #include "IndexBuffer.h"
 #include "VertexArray.h"
 #include "Shader.h"
@@ -43,9 +44,6 @@ int main(void)
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
-    ///   
-
-
     float positions[] = {
         -0.5f,-0.5f, //Vertx 0
          0.5f, -0.5f,//Vertx 1
@@ -58,17 +56,15 @@ int main(void)
         2,3,0
     };
 
+    //Vertex array
     VertexArray va;
     //Vertex buffer- Copy positions array to vRAM of the GPU AND select that buffer. (Remember this is a state machine)
     VertexBuffer vb(positions, 4 * 2 * sizeof(float));
-
 
     //Vertex Attributes - Telling our Layout (Here positions)
     VertexBufferLayout layout;
     layout.Push<float>(2);
     va.AddBuffer(vb, layout);
-
-   
 
     //Index Buffer - To remove duplicate vertices. The index buffer MUST be unsigned int not signed int
     IndexBuffer ib(indices,6);
@@ -76,7 +72,6 @@ int main(void)
     //Shader - block of code that run on the GPU
     //Vertex shader - This shader will call for every vertex (3 times in this case). Primary purpose :- Where the vertex should place in the screen.
     //Fragment/Pixel shader - Runs once for each pixel that needs to get rasterized(drawn on the screen). Primary purpose :- Decide which color that pixel supposed to be.
-
     Shader shader("resources/shaders/Basic.shader");
     shader.Bind();
     shader.setUniform4f("u_Color", 0.2f, 0.3f, 0.8f, 1.0f);
@@ -87,6 +82,7 @@ int main(void)
     ib.Unbind();
     shader.Unbind();
 
+    Renderer renderer;
 
     float redChannel = 0.0f;
     float increment = 0.05f;
@@ -95,20 +91,13 @@ int main(void)
     {
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
- 
-
         //=================Way the we draw things========================
         //binding the shader
         shader.Bind();
         //Setup the uniforms 
         shader.setUniform4f("u_Color", redChannel, 0.3f, 0.8f, 1.0f);
-
-        //Vertex array object is 1+2 using OpenGL Core Profile
-        va.Bind();
-
-        //Binding the index buffer
-        ib.Bind();
         //Draw call
+        renderer.Draw(va,ib,shader);
         GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
         //=================================================================================
 
@@ -117,13 +106,9 @@ int main(void)
         else if (redChannel < 0.0f)
             increment += 0.2f;
         redChannel += increment;
-        //        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
-                //glDrawArrays(GL_TRIANGLES,0,6); //Draw vertices sequencially.
-
-                /* Swap front and back buffers */
+         /* Swap front and back buffers */
         glfwSwapBuffers(window);
-
         /* Poll for and process events */
         glfwPollEvents();
     }
