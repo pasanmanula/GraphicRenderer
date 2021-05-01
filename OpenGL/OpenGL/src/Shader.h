@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
+
 #include <GL/glew.h>
 #define ASSERT(x) if (!(x)) __debugbreak(); //VS compiler MSVC
 #ifdef DEBUG
@@ -38,6 +39,7 @@ public:
 	void Unbind() const;
 
 	//Set unifroms
+	void setUniform1i(const std::string& name, int value);
 	void setUniform1f(const std::string& name, float value);
 	void setUniform4f(const std::string& name, float v0, float v1, float v2, float v3);
 

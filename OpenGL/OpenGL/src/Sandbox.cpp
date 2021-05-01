@@ -10,6 +10,7 @@
 #include "IndexBuffer.h"
 #include "VertexArray.h"
 #include "Shader.h"
+#include "Texture.h"
 
 int main(void)
 {
@@ -45,10 +46,10 @@ int main(void)
     std::cout << glGetString(GL_VERSION) << std::endl;
 
     float positions[] = {
-        -0.5f,-0.5f, //Vertx 0
-         0.5f, -0.5f,//Vertx 1
-         0.5f, 0.5f,//Vertx 2
-         -0.5f, 0.5f //Vertx 3
+         -0.5f,-0.5f, 0.0f, 0.0f,//Vertx 0
+          0.5f,-0.5f, 1.0f, 0.0f,//Vertx 1
+          0.5f, 0.5f, 1.0f, 1.0f,//Vertx 2
+         -0.5f, 0.5f, 0.0f, 1.0f //Vertx 3
     };
 
     unsigned int indices[] = {
@@ -56,13 +57,17 @@ int main(void)
         2,3,0
     };
 
+
+    GLCall(glEnable(GL_BLEND));
+    GLCall(glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA));
     //Vertex array
     VertexArray va;
     //Vertex buffer- Copy positions array to vRAM of the GPU AND select that buffer. (Remember this is a state machine)
-    VertexBuffer vb(positions, 4 * 2 * sizeof(float));
+    VertexBuffer vb(positions, 4 * 4 * sizeof(float));
 
     //Vertex Attributes - Telling our Layout (Here positions)
     VertexBufferLayout layout;
+    layout.Push<float>(2);
     layout.Push<float>(2);
     va.AddBuffer(vb, layout);
 
@@ -75,6 +80,10 @@ int main(void)
     Shader shader("resources/shaders/Basic.shader");
     shader.Bind();
     shader.setUniform4f("u_Color", 0.2f, 0.3f, 0.8f, 1.0f);
+     
+    Texture texture("resources/textures/howdy.png");
+    texture.Bind();
+    shader.setUniform1i("u_Texture",0);
     
     //Unbinding everything
     va.Unbind();
